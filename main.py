@@ -1,3 +1,4 @@
+from fastapi.responses import HTMLResponse
 from typing import Annotated
 from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel
@@ -10,11 +11,29 @@ from passlib.context import CryptContext
 import jwt
 from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta, timezone
+# from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Создание объекта FastAPI
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Настройка базы данных MySQL
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://isp_r_Istomin:12345@77.91.86.135/isp_r_Istomin"
@@ -54,7 +73,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(50), unique=True, index=True)
+    username = Column(String(50), index=True)
     email = Column(String(100), unique=True, index=True)
     full_name = Column(String(100), nullable=True)
     hashed_password = Column(String(100))
@@ -101,6 +120,8 @@ def get_db():
     finally:
         db.close()
 
+
+
 # Получение пользователя по токену
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -130,6 +151,12 @@ async def get_current_active_user(current_user: Annotated[User, Depends(get_curr
 def get_user_by_username(db: Session, username: str):
     return db.query(User).filter(User.username == username).first()
 
+@app.get("/", response_class=HTMLResponse)
+async def get_client():
+    with open("static/index.html", "r") as file:
+        return file.read()
+
+
 # Маршрут получения всех пользователей
 @app.get("/users/", response_model=list[UserResponse])
 def read_users(current_user: Annotated[User, Depends(get_current_active_user)], db: Session = Depends(get_db)):
@@ -156,7 +183,7 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     hashed_password = hash_password(user.password)
     db_user = User(
-        username=user.username,
+        username=user.username, 
         email=user.email,
         full_name=user.full_name,
         hashed_password=hashed_password
@@ -168,7 +195,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         return db_user
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Username or Email already registered")
+        raise HTTPException(status_code=401, detail="Email already registered")
 
 # Маршрут обновления пользователя
 @app.put("/users/{user_id}", response_model=UserResponse)
