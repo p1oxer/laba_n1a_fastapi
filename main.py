@@ -1,5 +1,7 @@
 from fastapi.responses import HTMLResponse
 from typing import Annotated
+from dotenv import load_dotenv
+import os
 from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Boolean
@@ -35,9 +37,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+load_dotenv()  # загружаем .env
+
+# Теперь получаем переменные окружения
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+SECRET_KEY = os.getenv("SECRET_KEY")
 # Настройка базы данных MySQL
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://isp_r_Istomin:12345@77.91.86.135/isp_r_Istomin"
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

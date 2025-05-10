@@ -28,10 +28,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
+      - name: Create .env file from secrets
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
       - name: Run tests
         run: |
-          pytest  # Замените на команду для запуска ваших тестов, если используете другой фреймворк
+          pytest 
 
   # Задача для сборки и публикации Docker-образа
   build-and-push-image:
